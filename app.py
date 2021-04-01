@@ -4,7 +4,7 @@ import numpy as np
 import requests
 import json
 import time
-from datetime import datetime
+import datetime
 
 import plotly
 import plotly.graph_objs as go
@@ -24,7 +24,6 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # functions needed to clean the data
 def unix_time_converter(ts):
-
     return datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M')
 
 
@@ -47,8 +46,9 @@ heroes_link = f'https://api.opendota.com/api/heroStats'
 r = requests.get(heroes_link)
 heroes_df = pd.DataFrame(json.loads(r.text))
 
-# APP LAYOUT
-# ***************************************************************************************
+heroes_list = list(heroes_df['localized_name'])
+
+# *****************************************************************************************************
 app.layout = dbc.Container([
 
     dbc.Row([
@@ -56,6 +56,7 @@ app.layout = dbc.Container([
         dbc.Col([
 
             html.Div([
+
                 dcc.Input(id="insert_id",
                           placeholder='Insert ID', inputMode='numeric', type="text"),
                 html.Button(
@@ -64,18 +65,21 @@ app.layout = dbc.Container([
             )], width=1),
 
         dbc.Col(
+
             dcc.Graph(id='wins_pie',
                       figure={}),
             width={'size': 3, 'offset': 1}
         ),
 
         dbc.Col(
+
             dcc.Graph(id='side',
                       figure={}),
             width=2
         ),
 
         dbc.Col(
+
             dcc.Graph(id='kda_bar',
                       figure={}),
             width=3
@@ -99,37 +103,34 @@ app.layout = dbc.Container([
         )
     ], align='start', no_gutters=True, justify='start'),
 
-# ------------- FIX THIS -----------
-    # dbc.Row([
-    #
-    #     dbc.Col(
-    #
-    #         html.H4('Kills and deaths timeline for 10 most picked heroes', className='text-left text-dark'),
-    #         width={'size': 6, 'offset': 0},
-    #         style={'fontSize': 9}
-    #     )
-    # ], no_gutters=True, justify='start'),
-    #
-    # dbc.Row([
+    dbc.Row([
 
-    #     dbc.Col([
-    #
-    #         dcc.Dropdown(id='hero_drop',
-    #                      value=list(top10_heroes_dict.keys())[0],
-    #                      multi=False,
-    #                      options=[{'label': x, 'value': x}
-    #                               for x in top10_heroes['Hero']],
-    #                      placeholder='Pick hero',
-    #                      clearable=False),
-    #         dcc.Graph(id='stats_line',
-    #                   figure={})
-    #     ],
-    #         width={'size': 3, 'offset': 0}),
-    # ],
-    #     align='start', justify='start', no_gutters=False
-    # ),
-# ----------------------------
-    
+        dbc.Col(
+
+            html.H4('Kills and deaths timeline for 10 most picked heroes', className='text-left text-dark'),
+            width={'size': 6, 'offset': 0},
+            style={'fontSize': 9}
+        )
+    ], no_gutters=True, justify='start'),
+
+    dbc.Row([
+
+        dbc.Col([
+
+            dcc.Dropdown(id='hero_drop',
+                         multi=False,
+                         options=[{'label': x, 'value': x}
+                                  for x in heroes_list],
+                         placeholder='Pick hero',
+                         clearable=False),
+            dcc.Graph(id='stats_line',
+                      figure={})
+        ],
+            width={'size': 3, 'offset': 0}),
+    ],
+        align='start', justify='start', no_gutters=False
+    ),
+
     dbc.Row([
 
         dbc.Col(
@@ -164,7 +165,6 @@ app.layout = dbc.Container([
         )
     ])
 ], fluid=True)
-    # ], fluid=True)
 
 
 # CALLBACKS
@@ -178,17 +178,16 @@ app.layout = dbc.Container([
                Output("top_friends", "figure"),
                Output("top_win_friends", "figure")],
               [Input("info_button", "n_clicks")],
-              [State("insert_id", "value")]
+              [State("insert_id", "value")],
               )
 def update_fig(*args):
 
     if not any(args):
         raise PreventUpdate
     else:
-        num_clicks, player_id = args
+        num_clicks, player_id, hero = args
 
     # get player info and make dataframes
-
     if num_clicks > 0:
         r = requests.get(f'https://api.opendota.com/api/players/{player_id}')
 
@@ -197,17 +196,17 @@ def update_fig(*args):
 
     matches_link = f'https://api.opendota.com/api/players/{player_id}/matches?significant=0'
     r = requests.get(matches_link)
-    player_matches_df = pd.DataFrame(json.loads(r.text))
+    player_matches_df = pd.DataFrame([json.loads(r.text)])
 
     player_heroes_link = f'https://api.opendota.com/api/players/{player_id}/heroes'
     r = requests.get(player_heroes_link)
-    player_heroes_df = pd.DataFrame(json.loads(r.text))
+    player_heroes_df = pd.DataFrame([json.loads(r.text)])
 
     player_peers = f'https://api.opendota.com/api/players/{player_id}/peers'
     r = requests.get(player_peers)
-    player_peers_df = pd.DataFrame(json.loads(r.text))
+    player_peers_df = pd.DataFrame([json.loads(r.text)])
 
-    # --------------------------------- data cleaning
+    # ----------------------- data cleaning, encoding and organizing
 
     # remove some columns
     player_matches_df.drop(['lobby_type',
@@ -235,7 +234,7 @@ def update_fig(*args):
     player_matches_df['skill'] = player_matches_df['skill'].map(skill_lvl)
     player_matches_df['skill'].fillna('N/A', inplace=True)
 
-    # renameing columns
+    # renaming columns
     renamed_col = ['Match ID', 'Side', 'Winner', 'Hero', 'Match date', 'Duration', 'Game mode',
                    'Kills', 'Deaths', 'Assists', 'Skill level']
 
@@ -350,7 +349,7 @@ def update_fig(*args):
                            font=dict(size=14))
                        )
 
-    # kill daeaths assists
+    # kill deaths assists
     kda = px.bar(kda_df.sum(),
                  width=650, height=320,
                  color=['Kills', 'Deaths', 'Assists'],
@@ -440,7 +439,7 @@ def update_fig(*args):
     top_all_wins.update_traces(marker_line_color='rgb(0,0,0)',
                                marker_line_width=1,
                                hovertemplate='%{x} Win %: %{y}',
-                               marker_color='#776885',
+                               marker_color='#b7adcf',
                                )
 
     top_all_wins.update_yaxes(showgrid=False, title_text='Win %')
@@ -498,7 +497,7 @@ def update_fig(*args):
     top_win_friends_bar.update_xaxes(title_text='', showgrid=False)
 
     return wins_pie, side, kda, \
-           stacked, top_all_wins, \
+           stacked, top_all_wins, stats_ot, \
            top_friends_bar, top_win_friends_bar
 
 
