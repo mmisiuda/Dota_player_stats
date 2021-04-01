@@ -1,0 +1,8 @@
+Requests ==> 2.25.1
+Json ==> 2.0.9
+Pandas ==> 1.1.1
+Numpy ==> 1.19.2
+Matplotlib ==> 3.3.4
+Plotly ==> 4.14.3
+Dash ==> 1.19.0
+Wordcloud ==> 1.8.1
