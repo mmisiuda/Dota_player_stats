@@ -17,8 +17,8 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
+# APP
+#----------------------------------------
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 
@@ -48,7 +48,8 @@ heroes_df = pd.DataFrame(json.loads(r.text))
 
 heroes_list = list(heroes_df['localized_name'])
 
-# *****************************************************************************************************
+# LAYOUT
+#-----------------------------------
 app.layout = dbc.Container([
 
     dbc.Row([
